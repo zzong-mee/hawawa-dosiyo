@@ -17,6 +17,8 @@ class HawawaBot(commands.Bot):
 
     async def setup_hook(self):
         await self.load_extension("bot.cogs.general")
+        await self.load_extension("bot.cogs.utility")
+        await self.load_extension("bot.cogs.moderation")
 
         guild_id = os.getenv("TEST_GUILD_ID", "").strip()
         if guild_id:
