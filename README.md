@@ -13,9 +13,16 @@ cp .env.example .env
 python -m bot.main
 ```
 
-Try `/핑` in Discord. To sync the slash command immediately to a test server, set `TEST_GUILD_ID` in your local `.env` (server ID, not token).
+Try `/ping` in Discord. To sync the slash command immediately to a test server, set `TEST_GUILD_ID` in your local `.env` (server ID, not token).
 
 **Security:** Never commit `.env`, tokens, or original SQLite databases. Never copy unaudited legacy Git history into this public repository.
+
+## Command structure
+
+- `bot/main.py`: starts the bot, loads extensions, and syncs slash commands.
+- `bot/cogs/general.py`: defines general commands, currently `/ping`.
+
+Add general commands to the `General` Cog. For a new feature, create a module under `bot/cogs/` with an async `setup(bot)` function that registers its Cog, then load it in `HawawaBot.setup_hook()` before syncing commands. Restart the bot to load and sync changes.
 
 ## Plan
 

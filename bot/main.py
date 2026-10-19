@@ -4,7 +4,6 @@ import logging
 import os
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -17,10 +16,7 @@ class HawawaBot(commands.Bot):
         super().__init__(command_prefix=commands.when_mentioned, intents=intents)
 
     async def setup_hook(self):
-        @app_commands.command(name="핑", description="봇 연결 상태를 확인합니다.")
-        async def ping(interaction: discord.Interaction):
-            await interaction.response.send_message(f"퐁! {round(self.latency * 1000)}ms")
-        self.tree.add_command(ping)
+        await self.load_extension("bot.cogs.general")
 
         guild_id = os.getenv("TEST_GUILD_ID", "").strip()
         if guild_id:
