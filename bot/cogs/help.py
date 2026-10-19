@@ -6,7 +6,7 @@ class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="도움말", description="구렁이 봇의 모든 사용법과 카테고리를 확인합니다.")
+    @app_commands.command(name="도움말", description="Hawawa Dosiyo 봇의 모든 사용법과 카테고리를 확인합니다.")
     async def help(self, interaction: discord.Interaction):
         # 1. 원하는 출력 순서대로 Cog 클래스 이름을 나열합니다.
         preferred_order = [
@@ -33,7 +33,7 @@ class Help(commands.Cog):
         }
 
         embed = discord.Embed(
-            title="🐍 구렁이 봇 명령어 가이드",
+            title="🐍 Hawawa Dosiyo 봇 명령어 가이드",
             description=(
                 "모든 명령어는 슬래시(`/`)를 입력하여 사용할 수 있습니다.\n"
                 "주가는 **10분마다** 변동되며, 실시간 뉴스에 따라 시세가 바뀝니다!"
