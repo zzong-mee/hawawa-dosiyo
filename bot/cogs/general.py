@@ -5,6 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from bot.presentation import make_embed
+from bot.i18n import COMMAND_NAMES
 
 HELP_EXAMPLES = {
     "ping": "/ping", "help": "/help command:avatar",
@@ -39,6 +40,8 @@ HELP_EXAMPLES = {
     "sticky": "/sticky text:채팅 전 서버 규칙을 확인해주세요",
     "suggestion": "/suggestion action:approve message_id:건의메시지ID reason:반영 예정",
     "levelreward": "/levelreward action:set level:5 role:@활동멤버",
+    "stocks": "/stocks", "stockbuy": "/stockbuy symbol:HAWA mode:수량 지정 quantity:10",
+    "stocksell": "/stocksell symbol:HAWA mode:수량 지정 quantity:10", "portfolio": "/portfolio",
 }
 
 
@@ -87,13 +90,15 @@ class General(commands.Cog):
         commands_list = sorted(self.bot.tree.get_commands(), key=lambda item: item.name)
         if command is not None:
             name = command.strip().lstrip("/").lower()
+            name = next((english for english, korean in COMMAND_NAMES.items() if korean == name), name)
             selected = next((item for item in commands_list if item.name == name), None)
             if selected is None:
                 await interaction.response.send_message(
                     "없는 명령어입니다. /help에서 목록을 확인해주세요.", ephemeral=True
                 )
                 return
-            embed = make_embed(title=f"/{selected.name}", description=selected.description)
+            korean_name = COMMAND_NAMES.get(selected.name, selected.name)
+            embed = make_embed(title=f"/{korean_name}", description=f"실행 명령어: `/{selected.name}`\n{selected.description}")
             for parameter in selected.parameters:
                 status = "필수" if parameter.required else "선택"
                 detail = parameter.description
@@ -102,7 +107,7 @@ class General(commands.Cog):
                 if not parameter.required:
                     detail += f"\n기본값: {parameter.default if parameter.default is not None else '생략 가능'}"
                 embed.add_field(name=f"{parameter.name} ({status})", value=detail, inline=False)
-            embed.add_field(name="사용 예시", value=HELP_EXAMPLES.get(name, f"/{name}"), inline=False)
+            embed.add_field(name="사용 예시", value=f"`/{korean_name}` (영문 환경: `/{HELP_EXAMPLES.get(name, name)}`)", inline=False)
             if selected.guild_only:
                 embed.add_field(name="사용 위치", value="서버 전용", inline=False)
             if name == "clear":
@@ -125,12 +130,12 @@ class General(commands.Cog):
 
         embed = make_embed(
             title="Hawawa Dosiyo 명령어",
-            description="`/help command:명령어`로 옵션과 사용 예시를 확인하세요.\n여러 선택지·참가자는 쉼표(,)로 구분합니다.",
+            description="Discord 언어가 한국어면 아래 이름으로 표시됩니다. 실제 입력은 괄호 안 영어 이름도 사용할 수 있어요.\n여러 선택지·참가자는 쉼표(,)로 구분합니다.",
 
         )
-        categories = {"General": "기본", "Utility": "유틸리티", "Information": "정보 조회", "Moderation": "서버 관리", "Community": "서버 운영", "Reminders": "리마인더", "RolePanels": "버튼 역할", "ServerEvents": "서버 활동", "AutoModeration": "자동 관리", "TemporaryRoles": "기간 역할", "Giveaways": "추첨", "Starboard": "추천 게시판", "ModerationRecords": "관리 기록", "Automation": "자동 응답·안내", "RoleAutomation": "역할 자동화", "Extras": "게임·멤버 조회", "Announcements": "안내 문구", "Suggestions": "건의 관리", "LevelRewards": "레벨 보상"}
+        categories = {"General": "기본", "Utility": "유틸리티", "Information": "정보 조회", "Moderation": "서버 관리", "Community": "서버 운영", "Reminders": "리마인더", "RolePanels": "버튼 역할", "ServerEvents": "서버 활동", "AutoModeration": "자동 관리", "TemporaryRoles": "기간 역할", "Giveaways": "추첨", "Starboard": "추천 게시판", "ModerationRecords": "관리 기록", "Automation": "자동 응답·안내", "RoleAutomation": "역할 자동화", "Extras": "게임·멤버 조회", "Announcements": "안내 문구", "Suggestions": "건의 관리", "LevelRewards": "레벨 보상", "Stocks": "주식 미니게임"}
         for cog_name, label in categories.items():
-            entries = [f"`/{item.name}` — {item.description}" for item in commands_list if getattr(item.binding, "qualified_name", None) == cog_name]
+            entries = [f"`/{COMMAND_NAMES.get(item.name, item.name)}` (`/{item.name}`) — {item.description}" for item in commands_list if getattr(item.binding, "qualified_name", None) == cog_name]
             if entries:
                 embed.add_field(name=label, value="\n".join(entries), inline=False)
         others = [item for item in commands_list if getattr(item.binding, "qualified_name", None) not in categories]

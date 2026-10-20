@@ -48,6 +48,9 @@ class Store:
                             connection.execute("CREATE TABLE IF NOT EXISTS level_roles (guild INTEGER NOT NULL, level INTEGER NOT NULL, role INTEGER NOT NULL, PRIMARY KEY(guild,level))")
                             connection.execute("CREATE TABLE IF NOT EXISTS suggestions (guild INTEGER NOT NULL, message INTEGER NOT NULL, channel INTEGER NOT NULL, author INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending', reason TEXT NOT NULL DEFAULT '', PRIMARY KEY(guild,message))")
                             connection.execute("CREATE TABLE IF NOT EXISTS suggestion_votes (guild INTEGER NOT NULL, message INTEGER NOT NULL, user INTEGER NOT NULL, vote INTEGER NOT NULL, PRIMARY KEY(guild,message,user))")
+                            connection.execute("CREATE TABLE IF NOT EXISTS stock_accounts (guild INTEGER NOT NULL, user INTEGER NOT NULL, cash INTEGER NOT NULL DEFAULT 10000, PRIMARY KEY(guild,user))")
+                            connection.execute("CREATE TABLE IF NOT EXISTS stock_holdings (guild INTEGER NOT NULL, user INTEGER NOT NULL, symbol TEXT NOT NULL, quantity INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(guild,user,symbol))")
+                            connection.execute("CREATE TABLE IF NOT EXISTS stock_market (guild INTEGER NOT NULL, symbol TEXT NOT NULL, price INTEGER NOT NULL, PRIMARY KEY(guild,symbol))")
                             connection.execute("PRAGMA user_version=1")
                         self._schema_ready = True
             with connection:

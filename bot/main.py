@@ -8,6 +8,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 from bot.errors import HawawaTree
+from bot.i18n import KoreanTranslator
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("hawawa")
@@ -20,6 +21,7 @@ class HawawaBot(commands.Bot):
         super().__init__(command_prefix=commands.when_mentioned, intents=intents, tree_cls=HawawaTree)
 
     async def setup_hook(self):
+        await self.tree.set_translator(KoreanTranslator())
         await self.load_extension("bot.cogs.general")
         await self.load_extension("bot.cogs.utility")
         await self.load_extension("bot.cogs.moderation")
@@ -39,6 +41,7 @@ class HawawaBot(commands.Bot):
         await self.load_extension("bot.cogs.announcements")
         await self.load_extension("bot.cogs.suggestions")
         await self.load_extension("bot.cogs.level_rewards")
+        await self.load_extension("bot.cogs.stocks")
 
         guild_id = os.getenv("TEST_GUILD_ID", "").strip()
         scope = os.getenv("COMMAND_SYNC_SCOPE", "auto").strip().lower()

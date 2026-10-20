@@ -8,9 +8,17 @@ import discord
 
 from bot.cogs.utility import Utility, parse_options
 from bot.main import HawawaBot
+from bot.i18n import COMMAND_NAMES
+from bot.i18n import KoreanTranslator
 
 
 class UtilityTests(unittest.IsolatedAsyncioTestCase):
+    async def test_korean_command_and_option_localization(self):
+        translator = KoreanTranslator()
+        self.assertEqual(await translator.translate(discord.app_commands.locale_str('ping'), discord.Locale.korean, None), '핑')
+        self.assertEqual(await translator.translate(discord.app_commands.locale_str('quantity'), discord.Locale.korean, None), '수량')
+        self.assertIsNone(await translator.translate(discord.app_commands.locale_str('quantity'), discord.Locale.american_english, None))
+
     def interaction(self, *, guild=True, permission=True):
         return SimpleNamespace(
             guild=object() if guild else None,
@@ -30,6 +38,7 @@ class UtilityTests(unittest.IsolatedAsyncioTestCase):
                 names.update({'modcase', 'trigger', 'embed', 'roleautomation', 'coinflip', 'rps', 'members'})
                 names.update({'greetingtemplate', 'sticky'})
                 names.update({'suggestion', 'levelreward'})
+                names.update({'stocks', 'stockbuy', 'stocksell', 'portfolio'})
                 self.assertEqual({c.name for c in bot.tree.get_commands()}, names)
                 if guild_id:
                     self.assertEqual({c.name for c in bot.tree.get_commands(guild=discord.Object(id=int(guild_id)))}, names)
@@ -43,7 +52,7 @@ class UtilityTests(unittest.IsolatedAsyncioTestCase):
                 content = '\n'.join(f.value for f in all_fields)
                 for name in names:
                     self.assertIn(f'`/{name}`', content)
-                self.assertEqual({f.name for f in all_fields}, {'기본', '유틸리티', '정보 조회', '서버 관리', '서버 운영', '리마인더', '버튼 역할', '서버 활동', '자동 관리', '기간 역할', '추첨', '추천 게시판', '관리 기록', '자동 응답·안내', '역할 자동화', '게임·멤버 조회', '안내 문구', '건의 관리', '레벨 보상'})
+                self.assertEqual({f.name for f in all_fields}, {'기본', '유틸리티', '정보 조회', '서버 관리', '서버 운영', '리마인더', '버튼 역할', '서버 활동', '자동 관리', '기간 역할', '추첨', '추천 게시판', '관리 기록', '자동 응답·안내', '역할 자동화', '게임·멤버 조회', '안내 문구', '건의 관리', '레벨 보상', '주식 미니게임'})
                 self.assertTrue(all(len(page) <= 6000 for page in pages))
                 self.assertTrue(all(len(field.value) <= 1024 for field in all_fields))
                 if view:
@@ -51,7 +60,7 @@ class UtilityTests(unittest.IsolatedAsyncioTestCase):
                 for name in names:
                     detail = self.interaction()
                     await command.callback(command.binding, detail, '/' + name)
-                    self.assertEqual(detail.response.send_message.call_args.kwargs['embed'].title, '/' + name)
+                    self.assertEqual(detail.response.send_message.call_args.kwargs['embed'].title, '/' + COMMAND_NAMES.get(name, name))
                 unknown = self.interaction()
                 await command.callback(command.binding, unknown, 'unknown')
                 self.assertIn('없는 명령어', unknown.response.send_message.call_args.args[0])
