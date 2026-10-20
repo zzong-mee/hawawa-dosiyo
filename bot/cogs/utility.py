@@ -56,14 +56,37 @@ class Utility(commands.Cog):
         embed.add_field(name="사용자 ID", value=str(target.id))
         embed.add_field(name="봇 여부", value="예" if target.bot else "아니요")
         embed.add_field(name="계정 생성일", value=discord.utils.format_dt(target.created_at, "D"))
+        member = target if isinstance(target, discord.Member) else (
+            interaction.guild.get_member(target.id) if interaction.guild else None
+        )
+        if member is not None:
+            embed.add_field(name="서버 표시 이름", value=member.display_name)
+            if member.joined_at is not None:
+                embed.add_field(name="서버 가입일", value=discord.utils.format_dt(member.joined_at, "D"))
+            roles = [role.mention for role in reversed(member.roles) if not role.is_default()]
+            visible_roles = []
+            for role in roles:
+                if len(" ".join(visible_roles + [role])) > 950:
+                    break
+                visible_roles.append(role)
+            role_text = " ".join(visible_roles) or "없음"
+            if len(visible_roles) < len(roles):
+                role_text += f"\n외 {len(roles) - len(visible_roles)}개"
+            embed.add_field(name="역할", value=role_text, inline=False)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="avatar", description="사용자의 아바타를 확인합니다.")
-    @app_commands.describe(user="확인할 사용자 (생략하면 본인)")
-    async def avatar(self, interaction: discord.Interaction, user: discord.User | None = None):
+    @app_commands.describe(user="확인할 사용자 (생략하면 본인)", global_avatar="서버 아바타 대신 계정 아바타 표시")
+    async def avatar(
+        self, interaction: discord.Interaction,
+        user: discord.User | None = None, global_avatar: bool = False,
+    ):
         target = user or interaction.user
+        if not global_avatar and interaction.guild and not isinstance(target, discord.Member):
+            target = interaction.guild.get_member(target.id) or target
+        asset = (target.avatar or target.default_avatar) if global_avatar else target.display_avatar
         embed = discord.Embed(title="아바타", color=discord.Color.blurple())
-        embed.set_image(url=target.display_avatar.url)
+        embed.set_image(url=asset.url)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="roll", description="주사위를 굴립니다.")
