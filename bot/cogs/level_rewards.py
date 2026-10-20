@@ -8,6 +8,7 @@ from discord.ext import commands
 
 from bot.cogs.community import safe_role
 from bot.storage import Store
+from bot.presentation import role_name
 
 
 class LevelRewards(commands.Cog):
@@ -36,7 +37,7 @@ class LevelRewards(commands.Cog):
             text = "설정을 삭제했습니다. 기존에 지급한 역할은 유지됩니다."
         else:
             rows = await self.store.execute("SELECT level,role FROM level_roles WHERE guild=? ORDER BY level LIMIT 25", (guild,))
-            text = "\n".join(f"레벨 {level} · 역할 ID {role}" for level, role in rows) or "설정된 보상이 없습니다."
+            text = "\n".join(f"레벨 {level} · {role_name(interaction.guild, role)}" for level, role in rows) or "설정된 보상이 없습니다."
         await interaction.followup.send(text, ephemeral=True)
 
     async def award(self, member, xp):

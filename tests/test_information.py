@@ -36,7 +36,7 @@ class InformationTests(unittest.IsolatedAsyncioTestCase):
             await cog.permissions.callback(cog, interaction, bot=bot)
             kwargs = interaction.response.send_message.call_args.kwargs
             self.assertTrue(kwargs['ephemeral'])
-            self.assertIn(expected, kwargs['embed'].fields[1].value)
+            self.assertIn(expected, '\n'.join(field.value for field in kwargs['embed'].fields))
 
     async def test_other_member_uses_channel_overwrites(self):
         cog = Information()
@@ -47,7 +47,7 @@ class InformationTests(unittest.IsolatedAsyncioTestCase):
         member = SimpleNamespace(id=20, guild=interaction.guild, display_name='Other')
         await cog.permissions.callback(cog, interaction, member=member)
         channel.permissions_for.assert_called_once_with(member)
-        self.assertIn('❌ 메시지 관리', interaction.response.send_message.call_args.kwargs['embed'].fields[1].value)
+        self.assertIn('❌ 메시지 관리', '\n'.join(field.value for field in interaction.response.send_message.call_args.kwargs['embed'].fields))
         member.guild = SimpleNamespace(id=2)
         channel.permissions_for.reset_mock()
         await cog.permissions.callback(cog, interaction, member=member)

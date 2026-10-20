@@ -79,7 +79,7 @@ class UtilityTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_user_defaults_and_explicit_target(self):
         cog = Utility()
-        target = SimpleNamespace(id=123, bot=False, created_at=datetime(2026, 1, 1, tzinfo=timezone.utc), display_avatar=SimpleNamespace(url='https://example.com/avatar.png'))
+        target = SimpleNamespace(id=123, name='testuser', display_name='테스트사용자', bot=False, created_at=datetime(2026, 1, 1, tzinfo=timezone.utc), display_avatar=SimpleNamespace(url='https://example.com/avatar.png'))
         for name in ('userinfo', 'avatar'):
             for explicit in (False, True):
                 interaction = self.interaction(guild=False)
@@ -91,7 +91,8 @@ class UtilityTests(unittest.IsolatedAsyncioTestCase):
                 if name == 'avatar':
                     self.assertEqual(kwargs['embed'].image.url, target.display_avatar.url)
                 else:
-                    self.assertIn('123', [f.value for f in kwargs['embed'].fields])
+                    self.assertIn('테스트사용자', [f.value for f in kwargs['embed'].fields])
+                    self.assertNotIn('사용자 ID', [f.name for f in kwargs['embed'].fields])
 
     async def test_poll_creation_and_guards(self):
         cog = Utility()

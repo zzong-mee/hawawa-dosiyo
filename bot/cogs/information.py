@@ -6,6 +6,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from bot.presentation import make_embed
+
 
 class Information(commands.Cog):
     @app_commands.command(name="charinfo", description="문자의 Unicode 코드와 이름을 확인합니다.")
@@ -18,7 +20,7 @@ class Information(commands.Cog):
         if not 1 <= len(characters) <= 15:
             await interaction.response.send_message("문자는 Unicode 코드 포인트 기준 1~15개 입력해주세요.", ephemeral=True)
             return
-        embed = discord.Embed(title="문자 정보", color=discord.Color.blurple())
+        embed = make_embed(title="문자 정보", description="보이지 않는 문자까지 코드 포인트별로 살펴보세요.", kind="social")
         for character in characters:
             code = f"U+{ord(character):04X}"
             name = unicodedata.name(character, "이름 없는 문자")
@@ -68,13 +70,12 @@ class Information(commands.Cog):
             "manage_roles": "역할 관리", "moderate_members": "멤버 타임아웃",
             "connect": "음성 연결", "speak": "음성 발언", "administrator": "관리자",
         }
-        embed = discord.Embed(title="현재 채널 권한", color=discord.Color.blurple())
+        embed = make_embed(title="현재 채널 권한", description="허용된 권한과 제한된 권한을 나누어 표시했어요.")
         embed.add_field(name="대상", value=discord.utils.escape_markdown(target_name), inline=False)
-        embed.add_field(
-            name="주요 권한",
-            value="\n".join(f"{'✅' if getattr(permissions, key) else '❌'} {label}" for key, label in labels.items()),
-            inline=False,
-        )
+        allowed = [f"✅ {label}" for key, label in labels.items() if getattr(permissions, key)]
+        denied = [f"❌ {label}" for key, label in labels.items() if not getattr(permissions, key)]
+        embed.add_field(name="🟢 허용 권한", value="\n".join(allowed) or "해당 없음", inline=True)
+        embed.add_field(name="🔴 제한 권한", value="\n".join(denied) or "제한 없음", inline=True)
         embed.set_footer(text="현재 채널 기준입니다. 역할 서열·스레드 상태 등에 따라 실제 작업이 제한될 수 있습니다.")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 

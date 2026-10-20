@@ -7,6 +7,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from bot.presentation import make_embed, text_name
+
 from bot.cogs.community import safe_role
 from bot.storage import Store
 
@@ -87,7 +89,7 @@ class RolePanels(commands.Cog):
         await interaction.response.defer(ephemeral=True, thinking=True)
         # Publish without an active button until the configuration is durable.
         message = await interaction.channel.send(
-            embed=discord.Embed(title=title, description=f"버튼을 누르면 {role.mention} 역할을 받거나 해제합니다."),
+            embed=make_embed(title=f"🎭 {title}", description=f"**{text_name(role, '일반 역할')}**\n\n아래 버튼을 눌러 역할을 받으세요.\n다시 누르면 역할을 해제할 수 있어요.", kind="social"),
             allowed_mentions=discord.AllowedMentions.none(),
         )
         await self.store.execute("INSERT INTO role_panels (guild,message,role) VALUES (?,?,?)", (interaction.guild.id, message.id, role.id))

@@ -6,6 +6,7 @@ from typing import Literal
 import discord
 from discord import app_commands
 from discord.ext import commands
+from bot.presentation import text_name, make_embed, add_lines
 
 
 class Extras(commands.Cog):
@@ -36,8 +37,11 @@ class Extras(commands.Cog):
         joined = order in ("newjoins", "oldjoins")
         members = [member for member in guild.members if not joined or member.joined_at is not None]
         selected = sorted(members, key=lambda member: member.joined_at if joined else member.created_at, reverse=order in ("youngest", "newjoins"))[:count]
-        lines = [f"{index}. {member.id} · <t:{int((member.joined_at if joined else member.created_at).timestamp())}:f>" for index, member in enumerate(selected, 1)]
-        await interaction.response.send_message("\n".join(lines) or "해당 멤버가 없습니다.", ephemeral=True)
+        lines = [f"{index}. {text_name(member)} · <t:{int((member.joined_at if joined else member.created_at).timestamp())}:f>" for index, member in enumerate(selected, 1)]
+        labels = {"oldest": "계정 생성 오래된 순", "youngest": "계정 생성 최근 순", "newjoins": "최근 가입 순", "oldjoins": "가입 오래된 순"}
+        embed = make_embed(title="👥 멤버 목록", description=f"**{labels[order]}** · {len(selected)}명", kind="social")
+        add_lines(embed, "멤버 · 날짜", lines or ["해당 멤버가 없습니다."])
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 async def setup(bot: commands.Bot):

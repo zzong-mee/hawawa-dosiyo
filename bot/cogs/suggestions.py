@@ -32,7 +32,7 @@ class SuggestionView(discord.ui.View):
                 await self.cog.store.execute("DELETE FROM suggestion_votes WHERE guild=? AND message=? AND user=?", key + (interaction.user.id,))
             rows = await self.cog.store.execute("SELECT vote,COUNT(*) FROM suggestion_votes WHERE guild=? AND message=? GROUP BY vote", key)
             counts = dict(rows)
-            await interaction.message.edit(content=f"찬성 {counts.get(1, 0)} · 반대 {counts.get(-1, 0)}", allowed_mentions=discord.AllowedMentions.none())
+            await interaction.message.edit(content=f"👍 **찬성 {counts.get(1, 0)}**　·　👎 **반대 {counts.get(-1, 0)}**", allowed_mentions=discord.AllowedMentions.none())
         await interaction.followup.send("투표를 반영했습니다.", ephemeral=True)
 
     @discord.ui.button(label="찬성", custom_id="hawawa:suggestion:yes:v1", style=discord.ButtonStyle.success)
@@ -93,10 +93,12 @@ class Suggestions(commands.Cog):
                     return
                 # A failed edit leaves the DB status unchanged, allowing retry.
                 moderator = discord.utils.escape_markdown(interaction.user.display_name)
-                await channel.get_partial_message(int(message_id)).edit(content=f"상태: {action}\n처리자: {moderator}\n사유: {reason}", view=None, allowed_mentions=discord.AllowedMentions.none())
+                label = "✅ 승인" if action == "approve" else "⏸️ 반려"
+                await channel.get_partial_message(int(message_id)).edit(content=f"**{label}**\n처리자: {moderator}\n사유: {reason}", view=None, allowed_mentions=discord.AllowedMentions.none())
                 await self.store.execute("UPDATE suggestions SET status=?,reason=? WHERE guild=? AND message=?", (action, reason) + key)
                 status, note = action, reason
-        await interaction.followup.send(f"상태: {status}\n사유: {note or '없음'}", ephemeral=True)
+        label = {"pending": "🕓 검토 중", "approve": "✅ 승인", "reject": "⏸️ 반려"}.get(status, status)
+        await interaction.followup.send(f"상태: {label}\n사유: {note or '없음'}", ephemeral=True)
 
 
 async def setup(bot: commands.Bot):

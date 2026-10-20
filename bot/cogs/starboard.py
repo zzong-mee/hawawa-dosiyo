@@ -7,6 +7,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from bot.presentation import make_embed, channel_name
+
 from bot.storage import Store
 
 logger = logging.getLogger("hawawa.starboard")
@@ -40,7 +42,7 @@ class Starboard(commands.Cog):
                 await self.store.set(interaction.guild.id, "starboard", str(channel.id) if channel else "")
             value = await self.store.get(interaction.guild.id, "starboard")
             threshold = await self.store.get(interaction.guild.id, "starboard_minimum") or "3"
-        await interaction.followup.send(f"추천 게시판: <#{value}> · ⭐ {threshold}개" if value else "추천 게시판이 꺼져 있습니다.", ephemeral=True)
+        await interaction.followup.send(f"추천 게시판: {channel_name(interaction.guild, value)} · ⭐ {threshold}개" if value else "추천 게시판이 꺼져 있습니다.", ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
 
     async def update(self, payload):
         if payload.guild_id is None or str(payload.emoji) != "⭐":
@@ -66,8 +68,8 @@ class Starboard(commands.Cog):
             rows = await self.store.execute("SELECT channel,post FROM star_posts WHERE guild=? AND source=?", (guild.id, message.id))
             if not rows and stars < threshold:
                 return
-            embed = discord.Embed(title=f"⭐ {stars}", description=f"[원본 메시지 보기]({message.jump_url})", color=discord.Color.gold())
-            embed.set_footer(text=f"원본 ID: {message.id} · 본문과 첨부파일은 복사하지 않습니다.")
+            embed = make_embed(title=f"⭐ {stars} · 커뮤니티 추천", description=f"[💬 원본 메시지 보러 가기]({message.jump_url})", color=discord.Color.gold())
+            embed.set_footer(text="Hawawa Dosiyo · 본문과 첨부파일은 복사하지 않아요")
             if rows:
                 old_channel = guild.get_channel(rows[0][0])
                 if isinstance(old_channel, discord.TextChannel):
