@@ -12,6 +12,7 @@ from discord.ext import commands, tasks
 
 from bot.cogs.community import safe_role
 from bot.storage import Store
+from bot.presentation import role_name
 
 logger = logging.getLogger("hawawa.role_automation")
 
@@ -72,7 +73,7 @@ class RoleAutomation(commands.Cog):
                 text = "재입장 복원: " + ("켜짐 (30일, 일반 역할만)" if await self.store.get(guild, "role_restore") == "on" else "꺼짐")
             else:
                 rows = await self.store.execute("SELECT role,delay FROM delayed_roles WHERE guild=? LIMIT 20", (guild,))
-                text = "\n".join(f"역할 ID {identifier} · {delay // 60}분" for identifier, delay in rows) or "지연 역할이 없습니다."
+                text = "\n".join(f"{role_name(interaction.guild, identifier)} · {delay // 60}분" for identifier, delay in rows) or "지연 역할이 없습니다."
         await interaction.followup.send(text, ephemeral=True)
 
     @commands.Cog.listener()

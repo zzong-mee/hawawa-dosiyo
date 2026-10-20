@@ -7,6 +7,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from bot.presentation import make_embed, user_names
+
 from bot.storage import Store
 
 
@@ -45,7 +47,7 @@ class ModerationRecords(commands.Cog):
             text = f"경고 #{rows[0][0]}를 기록했습니다."
         elif action == "revoke":
             rows = await self.store.execute("UPDATE moderation_cases SET revoked=? WHERE guild=? AND id=? AND revoked=0 RETURNING id", (interaction.user.id, guild, case_id))
-            text = "경고를 취소했습니다. 원본 사유·처리자와 취소자 ID는 기록에 남습니다." if rows else "활성 상태인 이 서버의 기록이 아닙니다."
+            text = "경고를 취소했습니다. 원본 사유와 처리·취소 이력은 기록에 남습니다." if rows else "활성 상태인 이 서버의 기록이 아닙니다."
         else:
             query = "SELECT id,user,moderator,reason,created,revoked FROM moderation_cases WHERE guild=?"
             args = (guild,)
@@ -56,9 +58,12 @@ class ModerationRecords(commands.Cog):
                 query += " AND user=?"
                 args += (member.id,)
             rows = await self.store.execute(query + " ORDER BY id DESC LIMIT 10", args)
-            embed = discord.Embed(title="관리 기록", color=discord.Color.blurple())
+            identifiers = {value for row in rows for value in (row[1], row[2], row[5]) if value}
+            names = await user_names(interaction.guild, identifiers, self.bot, known=(interaction.user, member))
+            embed = make_embed(title="관리 기록", description="경고 및 처리 이력을 확인하세요.", kind="warning")
             for identifier, user, moderator, note, created, revoked in rows:
-                embed.add_field(name=f"#{identifier} · 사용자 {user}"[:256], value=f"처리자: {moderator} · <t:{int(created)}:f>\n{'취소자: ' + str(revoked) if revoked else '유효한 경고'}\n{note[:350]}", inline=False)
+                state = f"↩️ 취소 · {names[revoked]}" if revoked else "⚠️ 유효한 경고"
+                embed.add_field(name=f"#{identifier} · {names[user]}", value=f"{state}\n**처리자** {names[moderator]} · <t:{int(created)}:f>\n**사유** {note[:180]}", inline=False)
             if not rows:
                 embed.description = "기록이 없습니다."
             await interaction.followup.send(embed=embed, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())

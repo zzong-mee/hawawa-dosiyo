@@ -8,6 +8,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from bot.presentation import make_embed, text_name, channel_name, user_names, identify
+
 from bot.storage import Store
 from bot.cogs.automation import render_template
 
@@ -53,7 +55,9 @@ class ServerEvents(commands.Cog):
             return
         if enabled is not None or channel:
             await self.store.set(interaction.guild.id, feature, current or "")
-        await interaction.followup.send(f"{feature}: {current or '꺼짐'}", ephemeral=True)
+        labels = {"logs": "이벤트 로그", "goodbye": "퇴장 안내", "suggestions": "건의 채널", "levels": "경험치"}
+        value = ("켜짐" if current else "꺼짐") if feature == "levels" else (channel_name(interaction.guild, current) if current else "꺼짐")
+        await interaction.followup.send(f"{labels[feature]}: {value}", ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
 
     async def publish(self, guild, key, embed):
         value = await self.store.get(guild.id, key)
@@ -63,20 +67,21 @@ class ServerEvents(commands.Cog):
 
     async def event(self, guild, title, description):
         try:
-            await self.publish(guild, "logs", discord.Embed(title=title, description=description[:4000], color=discord.Color.blurple()))
+            kind = "danger" if "삭제" in title or "퇴장" in title else "success"
+            await self.publish(guild, "logs", make_embed(title=title, description=description[:4000], kind=kind))
         except Exception:
             logger.exception("Event log failed in guild %s", guild.id)
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        await self.event(member.guild, "멤버 입장", f"사용자 ID: {member.id}")
+        await self.event(member.guild, "멤버 입장", f"**{text_name(member)}**님이 서버에 들어왔어요.")
 
     @commands.Cog.listener()
     async def on_member_remove(self, member):
-        await self.event(member.guild, "멤버 퇴장", f"사용자 ID: {member.id}")
+        await self.event(member.guild, "멤버 퇴장", f"**{text_name(member)}**님이 서버를 떠났어요.")
         try:
             template = await self.store.get(member.guild.id, "goodbye_template") or "{user}님이 나갔습니다."
-            await self.publish(member.guild, "goodbye", discord.Embed(title="퇴장 안내", description=render_template(template, member, member.guild)))
+            await self.publish(member.guild, "goodbye", make_embed(title="퇴장 안내", description=render_template(template, member, member.guild)))
         except Exception:
             logger.exception("Goodbye message failed in guild %s", member.guild.id)
 
@@ -90,11 +95,11 @@ class ServerEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_role_create(self, role):
-        await self.event(role.guild, "역할 생성", f"역할 ID: {role.id}")
+        await self.event(role.guild, "역할 생성", f"역할 이름: {text_name(role, '이름 없는 역할')}")
 
     @commands.Cog.listener()
     async def on_guild_role_delete(self, role):
-        await self.event(role.guild, "역할 삭제", f"역할 ID: {role.id}")
+        await self.event(role.guild, "역할 삭제", f"역할 이름: {text_name(role, '이름 없는 역할')}")
 
     @app_commands.command(name="suggest", description="설정된 건의 채널에 의견을 게시합니다.")
     @app_commands.guild_only()
@@ -114,8 +119,10 @@ class ServerEvents(commands.Cog):
         if not channel.permissions_for(interaction.user).view_channel:
             await interaction.followup.send("건의 채널을 볼 수 있는 멤버만 게시할 수 있습니다.", ephemeral=True)
             return
-        embed = discord.Embed(title="새 건의", description=text.strip(), color=discord.Color.blurple())
-        embed.set_footer(text=f"작성자 ID: {interaction.user.id}")
+        embed = make_embed(title="새 건의", description=text.strip(), kind="social")
+        identify(embed, interaction.user)
+        embed.add_field(name="🗳️ 여러분의 의견은?", value="아래 버튼으로 찬성·반대하거나 투표를 취소할 수 있어요.", inline=False)
+        embed.set_footer(text="Hawawa Dosiyo · 사용자당 한 표 · 결정 후 투표 마감")
         message = await channel.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
         suggestions = self.bot.get_cog("Suggestions")
         if suggestions:
@@ -148,15 +155,30 @@ class ServerEvents(commands.Cog):
         await interaction.response.defer(ephemeral=True, thinking=True)
         rows = await self.store.execute("SELECT xp FROM experience WHERE guild=? AND user=?", (interaction.guild.id, target.id))
         xp = rows[0][0] if rows else 0
-        await interaction.followup.send(f"사용자 ID {target.id}\n레벨 {xp // 100} · 경험치 {xp} · 다음 레벨까지 {100 - xp % 100}", ephemeral=True)
+        progress = xp % 100
+        bar = "🟪" * (progress // 10) + "⬜" * (10 - progress // 10)
+        embed = make_embed(title="경험치 프로필", description=f"**{text_name(target)}**님의 서버 활동 기록이에요.")
+        identify(embed, target)
+        embed.add_field(name="🏅 레벨", value=f"**Lv. {xp // 100}**")
+        embed.add_field(name="💎 누적 경험치", value=f"**{xp:,} XP**")
+        embed.add_field(name="🚀 다음 레벨까지", value=f"**{100 - progress} XP**")
+        embed.add_field(name="진행률", value=f"{bar} **{progress}%**", inline=False)
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="leaderboard", description="서버 경험치 상위 10명을 확인합니다.")
     @app_commands.guild_only()
     async def leaderboard(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True, thinking=True)
         rows = await self.store.execute("SELECT user,xp FROM experience WHERE guild=? ORDER BY xp DESC,user LIMIT 10", (interaction.guild.id,))
-        text = "\n".join(f"{index}. <@{user}> · 레벨 {xp // 100} · {xp} XP" for index, (user, xp) in enumerate(rows, 1))
-        await interaction.followup.send(text or "아직 경험치 기록이 없습니다.", ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
+        names = await user_names(interaction.guild, [user for user, _ in rows], self.bot)
+        embed = make_embed(title="경험치 순위", description="서버에서 활약한 멤버들을 만나보세요!", kind="warning")
+        medals = ["🥇", "🥈", "🥉"]
+        for index, (user, xp) in enumerate(rows):
+            medal = medals[index] if index < 3 else f"{index + 1}위"
+            embed.add_field(name=f"{medal} {names[user]}", value=f"**Lv. {xp // 100}** · {xp:,} XP", inline=False)
+        if not rows:
+            embed.description = "🌱 아직 경험치 기록이 없어요. 첫 번째 주인공이 되어보세요!"
+        await interaction.followup.send(embed=embed, ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
 
     async def cog_app_command_error(self, interaction, error):
         if isinstance(error, app_commands.CommandOnCooldown):

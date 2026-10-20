@@ -39,10 +39,13 @@ class ServerEventTests(unittest.IsolatedAsyncioTestCase):
     async def test_leaderboard_is_server_scoped(self):
         await self.store.execute('INSERT INTO experience VALUES (1,10,20,0)')
         await self.store.execute('INSERT INTO experience VALUES (2,99,1000,0)')
-        interaction = SimpleNamespace(guild=SimpleNamespace(id=1), response=SimpleNamespace(defer=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
+        guild = SimpleNamespace(id=1, get_member=lambda identifier: SimpleNamespace(display_name='서버멤버') if identifier == 10 else None)
+        interaction = SimpleNamespace(guild=guild, response=SimpleNamespace(defer=AsyncMock()), followup=SimpleNamespace(send=AsyncMock()))
         await self.cog.leaderboard.callback(self.cog, interaction)
-        text = interaction.followup.send.call_args.args[0]
-        self.assertIn('<@10>', text)
+        embed = interaction.followup.send.call_args.kwargs['embed']
+        text = str(embed.to_dict())
+        self.assertIn('서버멤버', text)
+        self.assertNotIn('<@10>', text)
         self.assertNotIn('<@99>', text)
 
     async def test_config_requires_management_permission(self):

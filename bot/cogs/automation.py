@@ -9,6 +9,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from bot.presentation import make_embed
+
 from bot.storage import Store
 
 logger = logging.getLogger("hawawa.automation")
@@ -95,7 +97,7 @@ class Automation(commands.Cog):
             await interaction.response.send_message("제목과 본문을 입력해주세요.", ephemeral=True)
             return
         await interaction.response.defer(ephemeral=True, thinking=True)
-        embed = discord.Embed(title=title.strip(), description=render_template(text, interaction.user, interaction.guild), color=discord.Color.blurple())
+        embed = make_embed(title=f"📣 {title.strip()}", description=render_template(text, interaction.user, interaction.guild), kind="warning")
         await interaction.channel.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
         await interaction.followup.send("안내 메시지를 게시했습니다.", ephemeral=True)
 

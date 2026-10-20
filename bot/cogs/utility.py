@@ -7,6 +7,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from bot.presentation import make_embed, text_name, identify, add_lines
+
 
 def parse_options(text: str, maximum: int, length: int) -> list[str]:
     options = [part.strip() for part in text.split(",")]
@@ -35,13 +37,10 @@ class Utility(commands.Cog):
             await interaction.response.send_message(str(error), ephemeral=True)
             return
         random.shuffle(members)
-        embed = discord.Embed(title="랜덤 팀 배정", color=discord.Color.blurple())
+        embed = make_embed(title="랜덤 팀 배정", description=f"**{len(members)}명**을 **{teams}개 팀**으로 배정했어요.", kind="social")
         for index in range(teams):
-            embed.add_field(
-                name=f"{index + 1}팀",
-                value="\n".join(discord.utils.escape_markdown(name) for name in members[index::teams]),
-                inline=False,
-            )
+            add_lines(embed, f"{index + 1}팀", [discord.utils.escape_markdown(name) for name in members[index::teams]], inline=True)
+        embed.set_footer(text="Hawawa Dosiyo · 팀별 인원 차이는 최대 1명이에요")
         await interaction.response.send_message(
             embed=embed, ephemeral=True, allowed_mentions=discord.AllowedMentions.none()
         )
@@ -50,20 +49,23 @@ class Utility(commands.Cog):
     @app_commands.describe(user="확인할 사용자 (생략하면 본인)")
     async def userinfo(self, interaction: discord.Interaction, user: discord.User | None = None):
         target = user or interaction.user
-        embed = discord.Embed(title="사용자 정보", color=discord.Color.blurple())
+        embed = make_embed(title="사용자 정보")
+        identify(embed, target)
         embed.set_thumbnail(url=target.display_avatar.url)
-        embed.add_field(name="사용자", value=str(target), inline=False)
-        embed.add_field(name="사용자 ID", value=str(target.id))
-        embed.add_field(name="봇 여부", value="예" if target.bot else "아니요")
+        embed.add_field(name="사용자", value=text_name(target), inline=False)
+        username = getattr(target, "name", None)
+        if isinstance(username, str):
+            embed.add_field(name="계정 이름", value=discord.utils.escape_markdown(username))
+        embed.add_field(name="봇 여부", value="🤖 봇" if target.bot else "🙋 사용자")
         embed.add_field(name="계정 생성일", value=discord.utils.format_dt(target.created_at, "D"))
         member = target if isinstance(target, discord.Member) else (
             interaction.guild.get_member(target.id) if interaction.guild else None
         )
         if member is not None:
-            embed.add_field(name="서버 표시 이름", value=member.display_name)
+            embed.add_field(name="서버 표시 이름", value=text_name(member))
             if member.joined_at is not None:
                 embed.add_field(name="서버 가입일", value=discord.utils.format_dt(member.joined_at, "D"))
-            roles = [role.mention for role in reversed(member.roles) if not role.is_default()]
+            roles = [text_name(role, "이름 없는 역할") for role in reversed(member.roles) if not role.is_default()]
             visible_roles = []
             for role in roles:
                 if len(" ".join(visible_roles + [role])) > 950:
@@ -85,7 +87,10 @@ class Utility(commands.Cog):
         if not global_avatar and interaction.guild and not isinstance(target, discord.Member):
             target = interaction.guild.get_member(target.id) or target
         asset = (target.avatar or target.default_avatar) if global_avatar else target.display_avatar
-        embed = discord.Embed(title="아바타", color=discord.Color.blurple())
+        embed = make_embed(title="아바타")
+        identify(embed, target)
+        embed.description = "🌐 계정 아바타" if global_avatar else "🎨 현재 표시 아바타"
+        embed.add_field(name="원본 이미지", value=f"[크게 보기]({asset.url})", inline=False)
         embed.set_image(url=asset.url)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 

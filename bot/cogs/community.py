@@ -9,6 +9,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from bot.storage import Store
+from bot.presentation import channel_name, role_name
 from bot.cogs.automation import render_template
 
 logger = logging.getLogger("hawawa.community")
@@ -107,7 +108,7 @@ class Community(commands.Cog):
         if channel or disable:
             await self.store.set(interaction.guild.id, "welcome", str(channel.id) if channel else "")
         value = await self.store.get(interaction.guild.id, "welcome")
-        await interaction.followup.send(f"입장 안내: <#{value}>" if value else "입장 안내가 꺼져 있습니다.", ephemeral=True)
+        await interaction.followup.send(f"입장 안내: {channel_name(interaction.guild, value)}" if value else "입장 안내가 꺼져 있습니다.", ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
 
     @app_commands.command(name="autorole", description="신규 멤버 자동 역할을 설정하거나 해제합니다.")
     @app_commands.guild_only()
@@ -131,7 +132,7 @@ class Community(commands.Cog):
         if role or disable:
             await self.store.set(interaction.guild.id, "autorole", str(role.id) if role else "")
         value = await self.store.get(interaction.guild.id, "autorole")
-        await interaction.followup.send(f"자동 역할: <@&{value}>" if value else "자동 역할이 꺼져 있습니다.", ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
+        await interaction.followup.send(f"자동 역할: {role_name(interaction.guild, value)}" if value else "자동 역할이 꺼져 있습니다.", ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):

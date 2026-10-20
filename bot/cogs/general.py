@@ -4,6 +4,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from bot.presentation import make_embed
+
 HELP_EXAMPLES = {
     "ping": "/ping", "help": "/help command:avatar",
     "serverinfo": "/serverinfo", "userinfo": "/userinfo user:@사용자",
@@ -91,7 +93,7 @@ class General(commands.Cog):
                     "없는 명령어입니다. /help에서 목록을 확인해주세요.", ephemeral=True
                 )
                 return
-            embed = discord.Embed(title=f"/{selected.name}", description=selected.description, color=discord.Color.blurple())
+            embed = make_embed(title=f"/{selected.name}", description=selected.description)
             for parameter in selected.parameters:
                 status = "필수" if parameter.required else "선택"
                 detail = parameter.description
@@ -121,10 +123,10 @@ class General(commands.Cog):
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
 
-        embed = discord.Embed(
+        embed = make_embed(
             title="Hawawa Dosiyo 명령어",
             description="`/help command:명령어`로 옵션과 사용 예시를 확인하세요.\n여러 선택지·참가자는 쉼표(,)로 구분합니다.",
-            color=discord.Color.blurple(),
+
         )
         categories = {"General": "기본", "Utility": "유틸리티", "Information": "정보 조회", "Moderation": "서버 관리", "Community": "서버 운영", "Reminders": "리마인더", "RolePanels": "버튼 역할", "ServerEvents": "서버 활동", "AutoModeration": "자동 관리", "TemporaryRoles": "기간 역할", "Giveaways": "추첨", "Starboard": "추천 게시판", "ModerationRecords": "관리 기록", "Automation": "자동 응답·안내", "RoleAutomation": "역할 자동화", "Extras": "게임·멤버 조회", "Announcements": "안내 문구", "Suggestions": "건의 관리", "LevelRewards": "레벨 보상"}
         for cog_name, label in categories.items():
@@ -140,7 +142,7 @@ class General(commands.Cog):
         pages = []
         fields = list(embed.fields)
         for start in range(0, len(fields), 6):
-            page = discord.Embed(title=embed.title, description=embed.description, color=embed.color)
+            page = make_embed(title=embed.title, description=embed.description, color=embed.color)
             for field in fields[start:start + 6]:
                 page.add_field(name=field.name, value=field.value, inline=False)
             page.set_footer(text=f"{len(pages) + 1}/{(len(fields) + 5) // 6} · 자세한 사용법: /help command:명령어")
@@ -161,7 +163,11 @@ class General(commands.Cog):
             )
             return
 
-        embed = discord.Embed(title="서버 정보", color=discord.Color.blurple())
+        embed = make_embed(title="서버 정보")
+        embed.description = "우리 서버의 기본 정보를 한눈에 확인하세요."
+        icon_url = getattr(getattr(guild, "icon", None), "url", None)
+        if isinstance(icon_url, str):
+            embed.set_thumbnail(url=icon_url)
         embed.add_field(name="서버 이름", value=guild.name, inline=False)
         member_count = guild.member_count
         embed.add_field(

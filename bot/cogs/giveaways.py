@@ -11,6 +11,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
+from bot.presentation import make_embed, user_names
+
 from bot.storage import Store
 
 logger = logging.getLogger("hawawa.giveaways")
@@ -102,9 +104,9 @@ class Giveaways(commands.Cog):
                 await interaction.followup.send("봇에 메시지 전송·임베드·채널 보기 권한이 필요합니다.", ephemeral=True)
                 return
             due = time.time() + minutes * 60
-            embed = discord.Embed(title="참가자 추첨", description=prize.strip(), color=discord.Color.blurple())
-            embed.add_field(name="마감", value=f"<t:{int(due)}:R>")
-            embed.add_field(name="당첨 인원", value=str(winners))
+            embed = make_embed(title="참가자 추첨", description=f"**{prize.strip()}**\n\n아래 참가 버튼을 눌러 행운의 주인공이 되어보세요!", kind="warning")
+            embed.add_field(name="⏳ 마감", value=f"<t:{int(due)}:R>")
+            embed.add_field(name="🏆 당첨 인원", value=f"**{winners}명**")
             message = await interaction.channel.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
             await self.store.execute("INSERT INTO giveaways (guild,message,channel,prize,due,count) VALUES (?,?,?,?,?,?)", (guild, message.id, message.channel.id, prize.strip(), due, winners))
             await message.edit(view=self.view)
@@ -151,8 +153,9 @@ class Giveaways(commands.Cog):
                         result = json.dumps(selected)
                         await self.store.execute("UPDATE giveaways SET result=? WHERE guild=? AND message=? AND result IS NULL", (result, guild_id, message_id))
                     winners = json.loads(result)
-                    embed = discord.Embed(title="추첨 마감", description=prize, color=discord.Color.blurple())
-                    embed.add_field(name="당첨자", value=", ".join(f"<@{user}>" for user in winners) or "참가자가 없습니다.")
+                    names = await user_names(guild, winners, self.bot)
+                    embed = make_embed(title="추첨 마감", description=f"**{prize}**\n추첨 결과를 발표합니다!", kind="success")
+                    embed.add_field(name="🎉 당첨자", value="\n".join(f"🥳 **{names[user]}**" for user in winners) or "참가자가 없습니다.", inline=False)
                     await channel.get_partial_message(message_id).edit(embed=embed, view=None, allowed_mentions=discord.AllowedMentions.none())
                     await self.store.execute("UPDATE giveaways SET announced=1 WHERE guild=? AND message=?", (guild_id, message_id))
                 except discord.NotFound:
