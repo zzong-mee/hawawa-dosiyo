@@ -5,6 +5,7 @@ import httpx
 
 from bot.ai.client import OllamaClient, OllamaError
 from bot.ai.config import OllamaConfig
+from bot.ai.character import character_prompt
 
 
 class AIClientTests(unittest.IsolatedAsyncioTestCase):
@@ -33,6 +34,28 @@ class AIClientTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(await client.generate("기분 어때?"), "오늘은 기분이 좋아!")
         finally:
             await client.aclose()
+
+    async def test_system_and_user_messages_are_separate(self):
+        requests = []
+        client = OllamaClient(
+            OllamaConfig(),
+            httpx.MockTransport(lambda request: (requests.append(request) or httpx.Response(200, json={"message": {"content": "응"}}))),
+        )
+        try:
+            await client.generate("안녕", system=character_prompt())
+            payload = __import__("json").loads(requests[0].content)
+            self.assertEqual(payload["messages"][0]["role"], "system")
+            self.assertIn("도시요", payload["messages"][0]["content"])
+            self.assertEqual(payload["messages"][1], {"role": "user", "content": "안녕"})
+        finally:
+            await client.aclose()
+
+    def test_character_name_and_customer_service_guardrails(self):
+        prompt = character_prompt()
+        self.assertIn("도시요", prompt)
+        self.assertIn("반말", prompt)
+        self.assertIn("고객센터", prompt)
+        self.assertIn("내부 추론", prompt)
 
     async def test_limits_concurrent_requests(self):
         active = 0
