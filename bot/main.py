@@ -15,9 +15,12 @@ logger = logging.getLogger("hawawa")
 
 class HawawaBot(commands.Bot):
     def __init__(self):
+        self.ai_enabled = os.getenv("AI_ENABLED", "false").strip().lower() == "true"
         intents = discord.Intents.default()
         intents.members = os.getenv("ENABLE_MEMBER_EVENTS", "false").strip().lower() == "true"
         intents.message_content = os.getenv("ENABLE_MESSAGE_CONTENT", "false").strip().lower() == "true"
+        if self.ai_enabled and not intents.message_content:
+            raise RuntimeError("AI_ENABLED=true requires ENABLE_MESSAGE_CONTENT=true and the Message Content Intent in Discord Developer Portal")
         super().__init__(command_prefix=commands.when_mentioned, intents=intents, tree_cls=HawawaTree)
 
     async def setup_hook(self):
@@ -42,6 +45,8 @@ class HawawaBot(commands.Bot):
         await self.load_extension("bot.cogs.suggestions")
         await self.load_extension("bot.cogs.level_rewards")
         await self.load_extension("bot.cogs.stocks")
+        if self.ai_enabled:
+            await self.load_extension("bot.cogs.ai_chat")
 
         guild_id = os.getenv("TEST_GUILD_ID", "").strip()
         scope = os.getenv("COMMAND_SYNC_SCOPE", "auto").strip().lower()
