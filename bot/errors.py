@@ -11,6 +11,15 @@ logger = logging.getLogger("hawawa.commands")
 
 class HawawaTree(app_commands.CommandTree):
     async def on_error(self, interaction, error):
+        # A 10062 response means Discord has already invalidated the token
+        # (for example, when the gateway delivered the interaction too late).
+        # There is no valid response channel left in that case.
+        if isinstance(error, app_commands.CommandInvokeError) and isinstance(error.original, discord.NotFound):
+            logger.warning("Interaction expired before an error response could be sent")
+            return
+        if isinstance(error, discord.NotFound):
+            logger.warning("Interaction expired before an error response could be sent")
+            return
         binding = getattr(interaction.command, "binding", None)
         if isinstance(binding, commands.Cog) and type(binding).cog_app_command_error is not commands.Cog.cog_app_command_error:
             return

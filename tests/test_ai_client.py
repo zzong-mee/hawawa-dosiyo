@@ -50,12 +50,25 @@ class AIClientTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await client.aclose()
 
-    def test_character_name_and_customer_service_guardrails(self):
+    def test_character_name_and_persona_guardrails(self):
         prompt = character_prompt()
-        self.assertIn("도시요", prompt)
-        self.assertIn("반말", prompt)
-        self.assertIn("고객센터", prompt)
-        self.assertIn("내부 추론", prompt)
+        self.assertIn("\ub3c4\uc2dc\uc694", prompt)
+        self.assertIn("\ub098\ub978\ud558\uace0 \ub2a5\uae00\ub9de\uc740 \ucc9c\uc7ac \ud5c8\ub2f9 \uad50\uc218 \ub204\ub098", prompt)
+        self.assertIn("\uc790\uc5f0\uc2a4\ub7ec\uc6b4 \ud55c\uad6d\uc5b4 \ubc18\ub9d0", prompt)
+        self.assertIn("\ub0b4\ubd80 \ucd94\ub860", prompt)
+        self.assertIn("\uc2e4\uc81c \uacbd\ud5d8", prompt)
+        self.assertIn("\uc9c0\uc5b4\ub0b4\uac70\ub098", prompt)
+
+    def test_persona_is_one_character_with_contextual_facets(self):
+        prompt = character_prompt()
+        self.assertIn("\uc9c0\uc2dd \uc9c8\ubb38\uc5d0\ub294 \uc815\ud655\ud558\uace0 \uc9c0\uc801\uc778 \uad50\uc218\ucc98\ub7fc", prompt)
+        self.assertIn("\uc77c\uc0c1 \ub300\ud654\uc5d0\ub294 \uc5ec\uc720\ub86d\uace0 \ub2e4\uc815\ud55c \ub204\ub098\ucc98\ub7fc", prompt)
+        self.assertIn("\uc7a5\ub09c\uc5d0\ub294 \uac00\ubccd\uace0 \ub2a5\uae00\ub9de\uc740 \uce5c\uad6c\ucc98\ub7fc", prompt)
+        self.assertIn("\ubcc4\ub3c4\uc758 \uc778\uaca9\uc774\ub098 \uc0c1\ud0dc \uc804\ud658\uc774 \uc544\ub2c8\ub77c", prompt)
+        self.assertIn("\uc911\uad6d\uc5b4\u00b7\uc77c\ubcf8\uc5b4\u00b7\uc601\uc5b4\ub97c \ubd88\ud544\uc694\ud558\uac8c \uc11e\uc9c0 \ub9c8", prompt)
+
+    def test_custom_prompt_still_overrides_default(self):
+        self.assertEqual(character_prompt("  custom rules  "), "custom rules")
 
     async def test_limits_concurrent_requests(self):
         active = 0
