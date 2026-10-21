@@ -39,6 +39,7 @@ class UtilityTests(unittest.IsolatedAsyncioTestCase):
                 names.update({'greetingtemplate', 'sticky'})
                 names.update({'suggestion', 'levelreward'})
                 names.update({'stocks', 'stockbuy', 'stocksell', 'portfolio'})
+                names.add('timezone')
                 self.assertEqual({c.name for c in bot.tree.get_commands()}, names)
                 if guild_id:
                     self.assertEqual({c.name for c in bot.tree.get_commands(guild=discord.Object(id=int(guild_id)))}, names)

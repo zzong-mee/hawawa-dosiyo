@@ -29,6 +29,7 @@ class Store:
                             if version > 1:
                                 raise RuntimeError("Database schema is newer than this bot supports")
                             connection.execute("CREATE TABLE IF NOT EXISTS settings (guild INTEGER NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY (guild, key))")
+                            connection.execute("CREATE TABLE IF NOT EXISTS user_settings (user INTEGER NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY (user, key))")
                             connection.execute("CREATE TABLE IF NOT EXISTS tags (guild INTEGER NOT NULL, name TEXT NOT NULL, content TEXT NOT NULL, PRIMARY KEY (guild, name))")
                             connection.execute("CREATE TABLE IF NOT EXISTS reminders (id INTEGER PRIMARY KEY AUTOINCREMENT, guild INTEGER NOT NULL, user INTEGER NOT NULL, text TEXT NOT NULL, due REAL NOT NULL, state TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0)")
                             reminder_columns = {row[1] for row in connection.execute("PRAGMA table_info(reminders)")}
@@ -71,3 +72,10 @@ class Store:
 
     async def set(self, guild: int, key: str, value: str):
         await self.execute("INSERT INTO settings VALUES (?, ?, ?) ON CONFLICT(guild,key) DO UPDATE SET value=excluded.value", (guild, key, value))
+
+    async def get_user(self, user: int, key: str):
+        rows = await self.execute("SELECT value FROM user_settings WHERE user=? AND key=?", (user, key))
+        return rows[0][0] if rows else None
+
+    async def set_user(self, user: int, key: str, value: str):
+        await self.execute("INSERT INTO user_settings VALUES (?, ?, ?) ON CONFLICT(user,key) DO UPDATE SET value=excluded.value", (user, key, value))

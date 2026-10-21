@@ -21,6 +21,7 @@ HELP_EXAMPLES = {
     "welcome": "/welcome channel:#입장안내",
     "autorole": "/autorole role:@멤버",
     "reminder": "/reminder action:생성 name:약속 text:약속 확인 mode:타이머 timer:30 · 또는 mode:알림 alert:09:30",
+    "timezone": "/timezone timezone:한국",
     "rolepanel": "/rolepanel role:@게임알림 title:알림 역할 선택",
     "rolepaneldisable": "/rolepaneldisable message_id:패널메시지ID",
     "serverconfig": "/serverconfig feature:suggestions channel:#건의 enabled:true",
