@@ -11,6 +11,13 @@ from discord.ext import commands, tasks
 from bot.storage import Store
 logger = logging.getLogger("hawawa.reminders")
 KST = ZoneInfo("Asia/Seoul")
+TIMEZONE_CHOICES = {
+    "South Korea": "Asia/Seoul", "Japan": "Asia/Tokyo", "China": "Asia/Shanghai", "Singapore": "Asia/Singapore",
+    "India": "Asia/Kolkata", "United Kingdom": "Europe/London", "France": "Europe/Paris", "Germany": "Europe/Berlin",
+    "US Eastern": "America/New_York", "US Pacific": "America/Los_Angeles", "Canada Eastern": "America/Toronto",
+    "Australia Eastern": "Australia/Sydney", "Brazil": "America/Sao_Paulo", "UTC": "UTC",
+}
+TimezoneChoice = app_commands.Choice[str]
 
 class Reminders(commands.Cog):
     reminder = app_commands.Group(name="reminder", description="개인 DM 리마인더를 관리합니다.")
@@ -21,6 +28,14 @@ class Reminders(commands.Cog):
     async def on_ready(self):
         if not self.deliver.is_running(): self.deliver.start()
     def cog_unload(self): self.deliver.cancel()
+
+    @app_commands.command(name="timezone", description="알림에 사용할 시간대를 선택합니다.")
+    @app_commands.describe(timezone="알림 시간 기준 지역")
+    @app_commands.choices(timezone=[app_commands.Choice(name=app_commands.locale_str(name), value=value) for name, value in TIMEZONE_CHOICES.items()])
+    async def timezone(self, interaction: discord.Interaction, timezone: TimezoneChoice):
+        label = timezone.name
+        await self.store.set_user(interaction.user.id, "timezone", timezone.value)
+        await interaction.response.send_message(f"알림 시간대를 **{label}**({timezone.value})로 설정했습니다.", ephemeral=True)
 
     async def _create(self, interaction, name, text, due, repeat_minutes=None, schedule=""):
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -37,7 +52,9 @@ class Reminders(commands.Cog):
         match = re.fullmatch(r"([01]\d|2[0-3]):([0-5]\d)", alert.strip())
         if not match:
             await interaction.response.send_message("알림은 한국 시간 기준 HH:MM 형식으로 입력해주세요. 예: 09:30", ephemeral=True); return
-        now_kst = datetime.now(KST); target = now_kst.replace(hour=int(match.group(1)), minute=int(match.group(2)), second=0, microsecond=0)
+        zone_name = await self.store.get_user(interaction.user.id, "timezone") if hasattr(self.store, "get_user") else None
+        zone = ZoneInfo(zone_name or "Asia/Seoul")
+        now_kst = datetime.now(zone); target = now_kst.replace(hour=int(match.group(1)), minute=int(match.group(2)), second=0, microsecond=0)
         if target <= now_kst: target += timedelta(days=1)
         await self._create(interaction, name, text, target.astimezone(timezone.utc).timestamp(), repeat_minutes, f"한국 시간 {alert.strip()}")
 
