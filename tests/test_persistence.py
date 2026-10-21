@@ -33,7 +33,7 @@ class PersistenceTests(unittest.IsolatedAsyncioTestCase):
         cog = Reminders(self.bot, self.store)
         interaction = self.interaction()
         with patch('bot.cogs.reminders.time.time', return_value=100):
-            await cog.reminder.callback(cog, interaction, 'create', 1, 'hello')
+            await cog.create_timer.callback(cog, interaction, name='hello', text='hello', timer=1)
         restarted = Reminders(self.bot, Store(self.store.path))
         await restarted.deliver_once(159)
         self.user.send.assert_not_awaited()
@@ -44,19 +44,19 @@ class PersistenceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self.store.execute('SELECT * FROM reminders'), [])
 
     async def test_reminder_cancellation_is_owner_and_guild_scoped(self):
-        rows = await self.store.execute("INSERT INTO reminders (guild,user,text,due) VALUES (1,10,'hello',1) RETURNING id")
+        rows = await self.store.execute("INSERT INTO reminders (guild,user,text,due,name) VALUES (1,10,'hello',1,'hello') RETURNING id")
         identifier = rows[0][0]
         cog = Reminders(self.bot, self.store)
         for interaction in (self.interaction(user=20), self.interaction(guild=2)):
-            await cog.reminder.callback(cog, interaction, 'cancel', reminder_id=identifier)
+            await cog.delete.callback(cog, interaction, name='hello')
             self.assertEqual(len(await self.store.execute('SELECT * FROM reminders')), 1)
-        await cog.reminder.callback(cog, self.interaction(), 'cancel', reminder_id=identifier)
+        await cog.delete.callback(cog, self.interaction(), name='hello')
         self.assertEqual(await self.store.execute('SELECT * FROM reminders'), [])
 
     async def test_reminder_limit_is_global_per_user(self):
         cog = Reminders(self.bot, self.store)
         for _ in range(26):
-            await cog.reminder.callback(cog, self.interaction(), 'create', 1, 'hello')
+            await cog.create_timer.callback(cog, self.interaction(), name=f'hello-{_}', text='hello', timer=1)
         self.assertEqual((await self.store.execute('SELECT COUNT(*) FROM reminders'))[0][0], 25)
 
     async def test_forbidden_dm_marks_failed_and_stale_lease_recovers(self):
