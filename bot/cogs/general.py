@@ -20,7 +20,7 @@ HELP_EXAMPLES = {
     "tag": "/tag action:set name:rules content:서버 규칙을 읽어주세요",
     "welcome": "/welcome channel:#입장안내",
     "autorole": "/autorole role:@멤버",
-    "reminder": "/reminder action:create minutes:30 text:약속 확인",
+    "reminder": "/reminder action:생성 name:약속 text:약속 확인 mode:타이머 timer:30 · 또는 mode:알림 alert:09:30",
     "rolepanel": "/rolepanel role:@게임알림 title:알림 역할 선택",
     "rolepaneldisable": "/rolepaneldisable message_id:패널메시지ID",
     "serverconfig": "/serverconfig feature:suggestions channel:#건의 enabled:true",
@@ -99,7 +99,11 @@ class General(commands.Cog):
                 return
             korean_name = COMMAND_NAMES.get(selected.name, selected.name)
             embed = make_embed(title=f"/{korean_name}", description=f"실행 명령어: `/{selected.name}`\n{selected.description}")
-            for parameter in selected.parameters:
+            if isinstance(selected, app_commands.Group):
+                for child in selected.commands:
+                    child_name = COMMAND_NAMES.get(child.name, child.name)
+                    embed.add_field(name=f"/{korean_name} {child_name}", value=f"`/{selected.name} {child.name}` — {child.description}", inline=False)
+            for parameter in getattr(selected, "parameters", ()):
                 status = "필수" if parameter.required else "선택"
                 detail = parameter.description
                 if parameter.choices:
@@ -135,13 +139,13 @@ class General(commands.Cog):
         )
         categories = {"General": "기본", "Utility": "유틸리티", "Information": "정보 조회", "Moderation": "서버 관리", "Community": "서버 운영", "Reminders": "리마인더", "RolePanels": "버튼 역할", "ServerEvents": "서버 활동", "AutoModeration": "자동 관리", "TemporaryRoles": "기간 역할", "Giveaways": "추첨", "Starboard": "추천 게시판", "ModerationRecords": "관리 기록", "Automation": "자동 응답·안내", "RoleAutomation": "역할 자동화", "Extras": "게임·멤버 조회", "Announcements": "안내 문구", "Suggestions": "건의 관리", "LevelRewards": "레벨 보상", "Stocks": "주식 미니게임"}
         for cog_name, label in categories.items():
-            entries = [f"`/{COMMAND_NAMES.get(item.name, item.name)}` (`/{item.name}`) — {item.description}" for item in commands_list if getattr(item.binding, "qualified_name", None) == cog_name]
+            entries = [f"`/{COMMAND_NAMES.get(item.name, item.name)}` (`/{item.name}`) — {item.description}" for item in commands_list if getattr(getattr(item, "binding", None), "qualified_name", None) == cog_name or (cog_name == "Reminders" and item.name == "reminder")]
             if entries:
                 embed.add_field(name=label, value="\n".join(entries), inline=False)
-        others = [item for item in commands_list if getattr(item.binding, "qualified_name", None) not in categories]
+        others = [item for item in commands_list if getattr(getattr(item, "binding", None), "qualified_name", None) not in categories and item.name != "reminder"]
         for item in others:
             embed.add_field(
-                name=f"/{item.name}", value=item.description, inline=False
+                name=f"/{COMMAND_NAMES.get(item.name, item.name)} (`/{item.name}`)", value=f"`/{item.name}` — {item.description}", inline=False
             )
         embed.set_footer(text="/serverinfo·/poll·/clear·/permissions는 서버 전용이며, /clear는 메시지 관리 권한이 필요합니다.")
         pages = []
